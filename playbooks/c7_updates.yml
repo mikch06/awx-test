@@ -1,0 +1,47 @@
+---
+# CentOS7 update playbook
+# Usable tags:
+#   --tag=update  -> updates all packages
+#   --tag=reboot  -> reboot
+#   --tag=k       -> show the current running kernel
+
+ - hosts: all
+   remote_user: admin
+   become: yes
+
+   tasks:
+   - name: Check available package updates
+     yum:
+       list: updates
+     register: packages
+
+   - debug:
+       msg: "Open updates:\n {{ packages.results|map(attribute='name')|join(',') }}
+              \n\nInfo: use --tag=update to update all packages!"
+     when: packages.results != []
+
+   - debug:
+       msg: "No updates for {{ inventory_hostname }}"
+     when: packages.results == []
+
+  # Update all available packges
+   - name: Upgrade all packages
+     yum:
+       name: '*'
+       state: latest
+     register: updated
+     tags: ['never', 'update' ]
+
+   - name: Installed updates
+     debug:
+        var: updated
+     tags: ['never', 'update' ]
+
+   - name: Reboot server
+     reboot:
+     tags: ['never', 'reboot' ]
+
+   - name: Running kernel
+     debug:
+        var: ansible_kernel
+     tags: ['never', 'k' ]
